@@ -4,10 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  
-  "start": "node server.js",
-  "dev": "nodemon server.js"
-
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
@@ -22,13 +20,11 @@
   },
   "homepage": "https://github.com/PatrickRasheed/Medirappel_api#readme",
   "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
   }
-  
 }
-
-
-
