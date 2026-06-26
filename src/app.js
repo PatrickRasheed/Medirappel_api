@@ -1,5 +1,8 @@
 import express from "express";
 import cors from "cors";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./lib/auth.js";
+
 
 export function createApp() {
   const app = express();
@@ -11,11 +14,17 @@ export function createApp() {
       credentials: true, // autorise l'envoi des cookies de session
     })
   );
+ // IMPORTANT : monté AVANT express.json(), Better Auth lit le corps brut lui-même
+  app.all("/api/auth/*splat", toNodeHandler(auth));
+
+  // Le parseur JSON s'applique aux routes définies APRÈS cette ligne
+  app.use(express.json());
 
   // Route de test pour vérifier que le serveur tourne
   app.get("/health", (req, res) => {
     res.json({ status: "ok" });
   });
+
 
   return app;
 }
