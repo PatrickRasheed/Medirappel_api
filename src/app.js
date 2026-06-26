@@ -2,7 +2,8 @@ import express from "express";
 import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth.js";
-
+import userRoutes from "./routes/user.routes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
   const app = express();
@@ -19,6 +20,7 @@ export function createApp() {
 
   // Le parseur JSON s'applique aux routes définies APRÈS cette ligne
   app.use(express.json());
+  app.use("/api/users", userRoutes);
 
   // Route de test pour vérifier que le serveur tourne
   app.get("/health", (req, res) => {

@@ -1,4 +1,5 @@
-import { Nodemailer as MailtrapNodemailer } from "mailtrap";
+
+
 import { MailtrapTransport } from "mailtrap";
 import Nodemailer from "nodemailer";
 
