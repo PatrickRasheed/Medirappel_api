@@ -1,11 +1,10 @@
 {
   "name": "medirappel_api",
   "version": "1.0.0",
-  "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "dev": "node --watch src/server.js"
   },
   "repository": {
     "type": "git",
@@ -14,7 +13,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/PatrickRasheed/Medirappel_api/issues"
   },
@@ -28,3 +26,4 @@
     "nodemon": "^3.1.14"
   }
 }
+
