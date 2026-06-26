@@ -1,17 +1,23 @@
-import { auth } from "../lib/auth.js";
-import { fromNodeHeaders } from "better-auth/node";
+import { verifyToken } from "../services/auth.service.js";
 
-export async function requireAuth(req, res, next) {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+export function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
 
-  if (!session) {
-    return res.status(401).json({ error: "Non authentifié. Veuillez vous connecter." });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      error: "Token d'authentification manquant. Veuillez vous connecter.",
+    });
   }
 
-  req.user = session.user;
-  req.session = session.session;
+  const token = authHeader.split(" ")[1];
+  const decoded = verifyToken(token);
 
+  if (!decoded) {
+    return res.status(401).json({
+      error: "Token invalide ou expiré. Veuillez vous reconnecter.",
+    });
+  }
+
+  req.user = decoded;
   next();
 }

@@ -1,5 +1,3 @@
-
-
 import { MailtrapTransport } from "mailtrap";
 import Nodemailer from "nodemailer";
 
@@ -14,28 +12,18 @@ const sender = {
   name: "Medirappel",
 };
 
-export async function sendVerificationEmail(to, url) {
+export async function sendOTPEmail(to, otp) {
   await transport.sendMail({
     from: sender,
     to: [to],
-    subject: "Confirmez votre adresse e-mail",
+    subject: "Votre code de vérification",
     html: `
-      <p>Bienvenue ! Cliquez sur le lien ci-dessous pour confirmer votre adresse e-mail :</p>
-      <p><a href="${url}">Confirmer mon e-mail</a></p>
+      <h2>Bienvenue sur Medirappel !</h2>
+      <p>Votre code de vérification est :</p>
+      <h1 style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+      <p>Ce code expirera dans 10 minutes.</p>
+      <p>Si vous n'avez pas demandé ce code, veuillez ignorer cet e-mail.</p>
     `,
-    category: "Email Verification",
-  });
-}
-
-export async function sendResetPasswordEmail(to, url) {
-  await transport.sendMail({
-    from: sender,
-    to: [to],
-    subject: "Réinitialisez votre mot de passe",
-    html: `
-      <p>Vous avez demandé une réinitialisation de mot de passe.</p>
-      <p><a href="${url}">Choisir un nouveau mot de passe</a></p>
-    `,
-    category: "Password Reset",
+    category: "OTP Verification",
   });
 }
