@@ -1,50 +1,45 @@
-import jwt from "jsonwebtoken";
-import { prisma } from "../lib/prisma.js";
-import { sendOTPEmail } from "./email.service.js";
+// src/services/auth.service.js
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';                          // ← Ajout
+import { prisma } from '../lib/prisma.js';
+import { sendOTPEmail } from './email.service.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-const JWT_EXPIRES = "7d";
-const OTP_LENGTH = 6;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '7d';
 const OTP_EXPIRY_MINUTES = 10;
 
-// Hash password using JWT secret
-function hashPassword(password) {
-  return jwt.sign({ password }, JWT_SECRET);
+// ── Fonctions utilitaires de hachage ─────────────────────────────────────────
+
+// Hash le mot de passe avec bcrypt (10 "rounds" = bon équilibre sécurité/vitesse)
+async function hashPassword(password) {
+  return bcrypt.hash(password, 10);
 }
 
-// Verify password against hash
-function verifyPassword(password, hash) {
-  try {
-    const decoded = jwt.verify(hash, JWT_SECRET);
-    return decoded.password === password;
-  } catch (error) {
-    return false;
-  }
+// Compare un mot de passe en clair avec son hash stocké en base
+async function verifyPassword(password, hash) {
+  return bcrypt.compare(password, hash);
 }
+
+// ── Inscription ───────────────────────────────────────────────────────────────
 
 export async function registerUser(email, password) {
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
+  const existingUser = await prisma.user.findUnique({ where: { email } });
 
   if (existingUser) {
     throw new Error("Un utilisateur avec cet e-mail existe déjà.");
   }
 
-  const hashedPassword = hashPassword(password);
+  const hashedPassword = await hashPassword(password);  // ← async maintenant
 
   const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-    },
+    data: { email, password: hashedPassword },
   });
 
-  // Send OTP email (don't block registration if email fails)
+  // Envoie l'OTP sans bloquer la réponse si l'email échoue
   try {
     await generateAndSendOTP(email);
   } catch (error) {
-    console.error("Failed to send OTP email:", error.message);
+    console.error('Échec de l\'envoi de l\'OTP:', error.message);
   }
 
   return {
@@ -54,10 +49,12 @@ export async function registerUser(email, password) {
   };
 }
 
+// ── Vérification OTP ──────────────────────────────────────────────────────────
+
 export async function verifyOTP(email, otp) {
   const verification = await prisma.otpVerification.findFirst({
     where: { email },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
   });
 
   if (!verification) {
@@ -65,9 +62,7 @@ export async function verifyOTP(email, otp) {
   }
 
   if (new Date() > verification.expiresAt) {
-    await prisma.otpVerification.delete({
-      where: { id: verification.id },
-    });
+    await prisma.otpVerification.delete({ where: { id: verification.id } });
     throw new Error("Le code OTP a expiré. Veuillez en demander un nouveau.");
   }
 
@@ -75,38 +70,33 @@ export async function verifyOTP(email, otp) {
     throw new Error("Code OTP invalide.");
   }
 
+  // Marque l'email comme vérifié
   await prisma.user.update({
     where: { email },
     data: { emailVerified: true },
   });
 
-  await prisma.otpVerification.delete({
-    where: { id: verification.id },
-  });
+  // Supprime l'OTP utilisé
+  await prisma.otpVerification.delete({ where: { id: verification.id } });
 
   const user = await prisma.user.findUnique({
     where: { email },
-    select: {
-      id: true,
-      email: true,
-      emailVerified: true,
-      createdAt: true,
-    },
+    select: { id: true, email: true, emailVerified: true, createdAt: true },
   });
 
   return user;
 }
 
+// ── Connexion ─────────────────────────────────────────────────────────────────
+
 export async function loginUser(email, password) {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+  const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
     throw new Error("Identifiants invalides.");
   }
 
-  const isPasswordValid = verifyPassword(password, user.password);
+  const isPasswordValid = await verifyPassword(password, user.password);  // ← async
 
   if (!isPasswordValid) {
     throw new Error("Identifiants invalides.");
@@ -132,23 +122,7 @@ export async function loginUser(email, password) {
   };
 }
 
-export async function getMe(userId) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      emailVerified: true,
-      createdAt: true,
-    },
-  });
-
-  if (!user) {
-    throw new Error("Utilisateur non trouvé.");
-  }
-
-  return user;
-}
+// ── OTP ───────────────────────────────────────────────────────────────────────
 
 export async function generateAndSendOTP(email) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -157,11 +131,7 @@ export async function generateAndSendOTP(email) {
   expiresAt.setMinutes(expiresAt.getMinutes() + OTP_EXPIRY_MINUTES);
 
   await prisma.otpVerification.create({
-    data: {
-      email,
-      otp,
-      expiresAt,
-    },
+    data: { email, otp, expiresAt },
   });
 
   await sendOTPEmail(email, otp);
@@ -169,11 +139,12 @@ export async function generateAndSendOTP(email) {
   return { message: "Code OTP envoyé avec succès." };
 }
 
+// ── Vérification du token JWT ─────────────────────────────────────────────────
+
 export function verifyToken(token) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    return decoded;
-  } catch (error) {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
     return null;
   }
 }

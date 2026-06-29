@@ -1,6 +1,6 @@
 // src/lib/prisma.js
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSQLite } from '@prisma/adapter-better-sqlite3';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import Database from 'better-sqlite3';
 
 // Récupère le chemin de la base de données depuis .env
@@ -13,7 +13,7 @@ const dbPath = dbUrl.replace('file:', '');
 const sqlite = new Database(dbPath);
 
 // Crée l'adaptateur Prisma pour better-sqlite3
-const adapter = new PrismaBetterSQLite(sqlite);
+const adapter = new PrismaBetterSqlite3(sqlite);
 
 // Crée et exporte le client Prisma (singleton partagé dans tout le projet)
 export const prisma = new PrismaClient({ adapter });
